@@ -1,30 +1,33 @@
 use crate::board::Board;
-use crate::moves::Move;
+use crate::moves::{Move, Flags};
 
 mod board;
-mod moves;
 mod movegen;
+mod moves;
 
 fn main() {
     let mut board = Board::default();
     println!("{}", board);
     loop {
         let mut input = String::default();
+        board.generate_all_moves();
+        println!("Moves: {:?}", board.all_moves);
         std::io::stdin().read_line(&mut input).expect("Worst");
-        let cords: Vec<u8> = input.trim().split(' ').map(|x| x.parse::<u8>().expect("Worst")).collect();
-        if cords.len() == 4 {
-            let mv = Move::with_flags(&board, cords[0] * 8 + cords[1], cords[2] * 8 + cords[3]);
-            if mv.is_none() {
-                println!("Wrong move")
+        let cords: Vec<usize> = input
+            .trim()
+            .split(' ')
+            .map(|x| x.parse::<usize>().expect("Worst"))
+            .collect();
+        if cords.len() == 2 {
+            let mv = Move::new(cords[0], cords[1], Flags::default());
+            if board.all_moves.contains(&mv) {
+                board.make_move(mv);
+                println!("{}", board);
             } else {
-                board.make_move(mv.unwrap());
-                println!("{}", board)
+                println!("Invalid move");
             }
         } else {
-            println!("Invalid pieces");
+            println!("Bad amount of numbers")
         }
-        
-        board.generate_all_moves();
-        println!("Moves: {:?}", board.all_moves)
     }
 }

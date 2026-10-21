@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use crate::moves::Move;
+use std::fmt::{Display, Formatter};
 
 /// First 3 bits - type of piece, 4th is color
 ///
@@ -7,8 +7,12 @@ use crate::moves::Move;
 pub struct Board {
     board: [u8; 64],
     pub turn: bool,
-    passant: bool,
+    pub passant: bool,
     pub all_moves: Vec<Move>,
+    pub white_king: usize,
+    pub black_king: usize,
+    pub checks: Vec<Move>,
+    pub xrays: Vec<Move>,
     //castle: [bool; 4]
     //total_pieces: u8,
     //col_pawns: u8
@@ -16,63 +20,67 @@ pub struct Board {
 
 impl Board {
     #[inline(always)]
-    pub fn get_square(&self, place: u8) -> u8 {
-        self.board[place as usize]
+    pub fn get_square(&self, place: usize) -> u8 {
+        self.board[place]
     }
     #[inline(always)]
-    fn set_square(&mut self, place: u8, val: u8) {
-        self.board[place as usize] = val
+    fn set_square(&mut self, place: usize, val: u8) {
+        self.board[place] = val
     }
 
     #[inline(always)]
-    pub fn is_piece(&self, place: u8) -> bool {
+    pub fn is_piece(&self, place: usize) -> bool {
         let square = self.get_square(place);
         square >= 0b0010_0000
     }
     #[inline(always)]
-    pub fn is_white_piece(&self, place: u8) -> bool {
+    pub fn is_white_piece(&self, place: usize) -> bool {
         let square = self.get_square(place);
-        square >= 0b0011_0000
+        (square >= 0b0011_0000) && (square & 0b0001_0000 == 0b0001_0000)
     }
     #[inline(always)]
-    pub fn is_black_piece(&self, place: u8) -> bool {
+    pub fn is_black_piece(&self, place: usize) -> bool {
         let square = self.get_square(place);
-        (square & 0b0001_0000) == 0 && square >= 0b0010_0000
+        (square >= 0b0010_0000) && (square & 0b0001_0000 == 0)
     }
     #[inline(always)]
     /// Assumes both are confirmed to be pieces.
-    pub fn is_diff_colors(&self, first: u8, second: u8) -> bool{
+    pub fn is_diff_colors(&self, first: usize, second: usize) -> bool {
         let one = self.get_square(first);
         let two = self.get_square(second);
         ((one ^ two) & 0b0001_0000) != 0
     }
 
     pub fn make_move(&mut self, mv: Move) {
-        if self.passant { // remove passants
-            let start = (3 + self.turn as u8) * 8;
-            for i in start..=(start + 7) {
-                let square = self.get_square(i) & 0b1110_1100;
-                if square == 0b0010_1100 ||
-                    square == 0b0010_0100 ||
-                    square == 0b0010_1000 {
-                    self.set_square(i, 0b0011_0011 & self.get_square(i));
+        if self.passant {
+            // remove passants
+            let row = (3 + self.turn as usize) * 8;
+            for letter in 0..8 {
+                let place = letter * 8 + row;
+                let sq = self.get_square(place);
+                let square = sq & 0b1110_1100; // Both colors.
+                if square == 0b0010_1100 || square == 0b0010_0100 || square == 0b0010_1000 {
+                    self.set_square(place, 0b0011_0011 & sq);
                     println!("Removed passant")
                 }
             }
             self.passant = false
         }
-        if mv.flags.king_move { // castle catch
-            return
+        if mv.flags.king_move {
+            // castle catch
+            return;
         }
-        if mv.flags.eat && mv.flags.pawn_move { // passant eat
+        if mv.flags.eat && mv.flags.pawn_move {
+            // passant eat
             if !self.is_piece(mv.to) {
-                let change = mv.from as i8 - mv.to as i8;
+                let change = (
+                    mv.from as i8 >> 3 - mv.to as i8 >> 3,
+                    mv.from as i8 % 8 - mv.to as i8 % 8,
+                );
                 let place = match change {
-                    -9 => mv.from + 1,
-                    -7 => mv.from - 1,
-                    7 => mv.to - 1,
-                    9 => mv.to + 1,
-                    _ => panic!("Passant error!")
+                    (-1, 1) | (1, 1) => mv.from + 1,
+                    (-1, -1) | (1, -1) => mv.from - 1,
+                    _ => panic!("Passant error!"),
                 };
                 self.set_square(place, 0);
             }
@@ -80,10 +88,24 @@ impl Board {
         self.set_square(mv.to, self.get_square(mv.from)); // make a move
         self.set_square(mv.from, 0);
 
-        if mv.flags.pawn_move { // add passants
-            if mv.to / 8 == 4 - self.turn as u8 {
-                if mv.from / 8 == 6 - (self.turn as u8 * 5) { // find 2 square moves
-                    println!("Adding passants");
+        if mv.flags.pawn_move {
+            // queening
+            if mv.to == 7 || mv.to == 0 {
+                let was = self.get_square(mv.to);
+                if mv.flags.bishop_move && mv.flags.rook_move {
+                    self.set_square(mv.to, 0b1110_0000 & was);
+                } else if mv.flags.bishop_move {
+                    self.set_square(mv.to, 0b0110_0000 & was);
+                } else if mv.flags.rook_move{
+                    self.set_square(mv.to, 0b1100_0000 & was);
+                } else if mv.flags.knight_move {
+                    self.set_square(mv.to, 0b0100_0000 & was);
+                }
+            }
+            // add passants
+            if mv.to / 8 == 4 - self.turn as usize {
+                if mv.from / 8 == 6 - (self.turn as usize * 5) {
+                    // find 2 square moves
                     if self.is_white_piece(mv.to) {
                         if (self.get_square(mv.to - 1) & 0b1111_0000) == 0b0010_0000 {
                             self.set_square(mv.to - 1, self.get_square(mv.to - 1) | 0b0000_0100); // eatable for -7
@@ -93,8 +115,7 @@ impl Board {
                             self.set_square(mv.to + 1, self.get_square(mv.to + 1) | 0b0000_1000); // eatable for -9
                             self.passant = true;
                         }
-                    }
-                    else {
+                    } else {
                         if (self.get_square(mv.to - 1) & 0b1111_0000) == 0b0011_0000 {
                             self.set_square(mv.to - 1, self.get_square(mv.to - 1) | 0b0000_1000); // eatable for +9
                             self.passant = true;
@@ -129,13 +150,17 @@ impl Default for Board {
                 60 => 0b1110_0000,
                 3 => 0b1011_1000,
                 59 => 0b1010_1000,
-                8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 => 0b0011_0000,
-                55 | 54 | 53 | 52 | 51 | 50 | 49 | 48 => 0b0010_0000,
+                24 | 25 | 10 | 11 | 12 | 13 | 14 | 15 => 0b0011_0000,
+                55 | 54 | 53 | 52 | 51 | 50 | 33 | 40 => 0b0010_0000,
                 _ => 0,
             }),
             turn: true,
             passant: false,
             all_moves: vec![],
+            white_king: 3,
+            black_king: 59,
+            xrays: vec![],
+            checks: vec![],
             //total_pieces: 0,
             //col_pawns: 0
         }
@@ -163,7 +188,7 @@ impl Display for Board {
                 0b0100_0000 => 'n',
                 0b0011_0000 => 'P',
                 0b0010_0000 => 'p',
-                _ => '0'
+                _ => '0',
             };
             out.push(c);
         }
