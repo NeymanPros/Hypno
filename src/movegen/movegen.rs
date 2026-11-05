@@ -7,22 +7,27 @@ impl Board {
         self.checks.clear();
         self.xrays.clear();
         
-        self.king_check();
+        self.king_checks();
         println!("\nChecks: {:?}\nXrays: {:?}\n", self.checks, self.xrays);
+        
+        if self.checks.len() != 0 {
+            self.avoid_checks();
+            return 
+        }
         
         for sq in 0..=63 {
             if (self.is_white_piece(sq) & self.turn) || (self.is_black_piece(sq) & !self.turn) {
                 let square = self.get_square(sq);
                 match square & 0b1110_0000 {
-                    //0b0010_0000 => self.generate_pawns(sq),
-                    //0b0100_0000 => self.generate_knights(sq),
+                    0b0010_0000 => self.generate_pawns(sq),
+                    0b0100_0000 => self.generate_knights(sq),
                     0b0110_0000 => self.generate_moves(sq),
                     0b1100_0000 => self.generate_rooks(sq),
                     0b1110_0000 => {
                         self.generate_rooks(sq);
                         self.generate_moves(sq);
                     },
-                    0b0100_0000 => self.generate_king(sq),
+                    0b1000_0000 => self.generate_king(sq),
                     _ => {}
                 }
             }

@@ -2,7 +2,6 @@ use crate::moves::Move;
 use std::fmt::{Display, Formatter};
 
 /// First 3 bits - type of piece, 4th is color
-///
 #[derive(Debug)]
 pub struct Board {
     board: [u8; 64],
@@ -15,7 +14,7 @@ pub struct Board {
     pub xrays: Vec<Move>,
     //castle: [bool; 4]
     //total_pieces: u8,
-    //col_pawns: u8
+    //total_pawns: u8
 }
 
 impl Board {
@@ -52,11 +51,11 @@ impl Board {
     }
 
     pub fn make_move(&mut self, mv: Move) {
+        // Remove passants.
         if self.passant {
-            // remove passants
             let row = (3 + self.turn as usize) * 8;
             for letter in 0..8 {
-                let place = letter * 8 + row;
+                let place = row + letter;
                 let sq = self.get_square(place);
                 let square = sq & 0b1110_1100; // Both colors.
                 if square == 0b0010_1100 || square == 0b0010_0100 || square == 0b0010_1000 {
@@ -66,30 +65,34 @@ impl Board {
             }
             self.passant = false
         }
-        if mv.flags.king_move {
-            // castle catch
+        
+        // Castle catch.
+        if mv.flags.castle {
             return;
         }
+        //Passant eat.
         if mv.flags.eat && mv.flags.pawn_move {
-            // passant eat
+            // Consumes empty square.
             if !self.is_piece(mv.to) {
                 let change = (
-                    mv.from as i8 >> 3 - mv.to as i8 >> 3,
+                    (mv.from as i8 >> 3) - (mv.to as i8 >> 3),
                     mv.from as i8 % 8 - mv.to as i8 % 8,
                 );
                 let place = match change {
-                    (-1, 1) | (1, 1) => mv.from + 1,
-                    (-1, -1) | (1, -1) => mv.from - 1,
+                    (-1, 1) | (1, 1) => mv.from - 1,
+                    (-1, -1) | (1, -1) => mv.from + 1,
                     _ => panic!("Passant error!"),
                 };
                 self.set_square(place, 0);
             }
         }
-        self.set_square(mv.to, self.get_square(mv.from)); // make a move
+        
+        // Make a move.
+        self.set_square(mv.to, self.get_square(mv.from)); 
         self.set_square(mv.from, 0);
 
         if mv.flags.pawn_move {
-            // queening
+            // Queening.
             if mv.to == 7 || mv.to == 0 {
                 let was = self.get_square(mv.to);
                 if mv.flags.bishop_move && mv.flags.rook_move {
@@ -102,36 +105,36 @@ impl Board {
                     self.set_square(mv.to, 0b0100_0000 & was);
                 }
             }
-            // add passants
-            if mv.to / 8 == 4 - self.turn as usize {
-                if mv.from / 8 == 6 - (self.turn as usize * 5) {
-                    // find 2 square moves
-                    if self.is_white_piece(mv.to) {
-                        if (self.get_square(mv.to - 1) & 0b1111_0000) == 0b0010_0000 {
-                            self.set_square(mv.to - 1, self.get_square(mv.to - 1) | 0b0000_0100); // eatable for -7
-                            self.passant = true;
-                        }
-                        if (self.get_square(mv.to + 1) & 0b1111_0000) == 0b0010_0000 {
-                            self.set_square(mv.to + 1, self.get_square(mv.to + 1) | 0b0000_1000); // eatable for -9
-                            self.passant = true;
-                        }
-                    } else {
-                        if (self.get_square(mv.to - 1) & 0b1111_0000) == 0b0011_0000 {
-                            self.set_square(mv.to - 1, self.get_square(mv.to - 1) | 0b0000_1000); // eatable for +9
-                            self.passant = true;
-                        }
-                        if (self.get_square(mv.to + 1) & 0b1111_0000) == 0b0011_0000 {
-                            self.set_square(mv.to + 1, self.get_square(mv.to + 1) | 0b0000_0100); // eatable for +7
-                            self.passant = true;
-                        }
+            // Add passants.
+            let shift = if self.turn {
+                (1, 3)
+            } else {
+                (6, 4)
+            };
+            
+            // find 2 square moves.
+            if mv.from / 8 == shift.0 {
+                if mv.to / 8 == shift.1 {
+                    let is_pawn = |board: &Self, sq: usize| {
+                        (board.get_square(sq) & 0b1110_0000) == 0b0010_0000
+                    };
+                    if is_pawn(&self, mv.to - 1) && self.is_diff_colors(mv.to - 1, mv.to) {
+                        self.set_square(mv.to - 1, self.get_square(mv.to - 1) | 0b0000_0100); // -1 == _01
+                        self.passant = true;
                     }
+                    if is_pawn(&self, mv.to + 1) && self.is_diff_colors(mv.to + 1, mv.to) {
+                        self.set_square(mv.to + 1, self.get_square(mv.to + 1) | 0b0000_1000); // +1 == _10
+                        self.passant = true;
+                    }
+                    println!("Maybe added passants")
                 }
             }
         }
         self.turn = !self.turn;
     }
 
-    pub fn from_fen(fen: &'static str) -> Option<Self> {
+#[allow(dead_code)]
+    pub fn from_fen(_fen: &'static str) -> Option<Self> {
         None
     }
 }
@@ -141,7 +144,7 @@ impl Default for Board {
         Self {
             board: std::array::from_fn(|i| match i {
                 0 | 7 => 0b1101_1000,
-                63 | 56 => 0b1100_1000,
+                63 | 40 => 0b1100_1000,
                 1 | 6 => 0b0101_0000,
                 62 | 57 => 0b0100_0000,
                 2 | 5 => 0b0111_0000,
@@ -150,8 +153,8 @@ impl Default for Board {
                 60 => 0b1110_0000,
                 3 => 0b1011_1000,
                 59 => 0b1010_1000,
-                24 | 25 | 10 | 11 | 12 | 13 | 14 | 15 => 0b0011_0000,
-                55 | 54 | 53 | 52 | 51 | 50 | 33 | 40 => 0b0010_0000,
+                24 | 25 | 35 | 10 | 12 | 13 | 14 | 15 => 0b0011_0000,
+                55 | 54 | 53 | 52 | 51 | 50 | 33 | 32 => 0b0010_0000,
                 _ => 0,
             }),
             turn: true,

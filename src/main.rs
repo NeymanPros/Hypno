@@ -20,8 +20,8 @@ fn main() {
             .collect();
         if cords.len() == 2 {
             let mv = Move::new(cords[0], cords[1], Flags::default());
-            if board.all_moves.contains(&mv) {
-                board.make_move(mv);
+            if let Some(real_move) = board.all_moves.iter().find(|&real| *real == mv) {
+                board.make_move(real_move.clone());
                 println!("{}", board);
             } else {
                 println!("Invalid move");

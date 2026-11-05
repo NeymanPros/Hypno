@@ -6,3 +6,6 @@ mod rooks;
 mod knights;
 mod bishops;
 mod kings;
+mod occupy;
+mod occupy_helpers;
+

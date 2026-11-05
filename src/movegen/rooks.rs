@@ -2,10 +2,10 @@ use crate::Board;
 use crate::moves::{Flags, Move};
 
 impl Board {
-    pub fn generate_rooks(&mut self, sq: usize) {
-        for i in 0..self.xrays.len() {
-            if self.piece_in_xray(sq, &self.xrays[i]) {
-                return self.gen_rooks_pinned(sq, self.xrays[i].clone());
+    pub(super) fn generate_rooks(&mut self, sq: usize) {
+        for (num, pin) in self.xrays.iter().enumerate() {
+            if sq == pin.to {
+                return self.gen_rooks_pinned(sq, self.xrays[num].clone());
             }
         }
         
@@ -33,6 +33,7 @@ impl Board {
 
     #[inline(always)]
     fn gen_rooks_pinned(&mut self, sq: usize, pin: Move) {
+        let king = self.get_king(self.turn);
         if pin.flags.rook_move {
             let add = if pin.from >> 8 == pin.to >> 8 {
                 1
@@ -41,8 +42,8 @@ impl Board {
             } else {
                 return
             };
-            let min = pin.from.min(pin.to) + add;
-            let max = pin.from.max(pin.to);
+            let min = pin.from.min(king) + add;
+            let max = pin.from.max(king);
             let flags = Flags {
                 rook_move: true,
                 ..Flags::default()
@@ -56,6 +57,6 @@ impl Board {
                 pl += add;
             }
             let _ = self.add_exit(sq, pin.from, flags);
-            }
+        }
     }
 }

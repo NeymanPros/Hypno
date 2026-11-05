@@ -3,32 +3,34 @@ use crate::moves::{Move, Flags};
 
 impl Board {
     pub fn generate_knights(&mut self, sq: usize) {
-        let add_what = |board: &Self, sq: usize, to_check: usize| -> Option<Flags> {
-            if board.is_piece(to_check) {
-                // Is a piece.
-                if board.is_diff_colors(sq, to_check) {
-                    Some (Flags {
-                        knight_move: true,
-                        eat: true,
-                        ..Flags::default()
-                    })
-                } else {
-                    None
+        for xray in &self.xrays {
+            if xray.to == sq {
+                return
+            }
+        }
+        let knights = self.return_knights(sq);
+        for to_check in knights.into_iter() {
+            if self.is_piece(to_check) {
+                if self.is_diff_colors(to_check, sq) {
+                    let flags = Flags{
+                    knight_move: true,
+                    eat: true,
+                    ..Flags::default()
+                };
+                self.all_moves.push(Move::new(sq, to_check, flags))
                 }
             } else {
-                // Not a piece.
-                Some(Flags {
+                let flags = Flags{
                     knight_move: true,
                     ..Flags::default()
-                })
+                };
+                self.all_moves.push(Move::new( sq, to_check, flags))
             }
-        };
-        let mut knights = self.return_knights(sq, add_what);
-        println!("Knights are: {:?}", knights);
-        self.all_moves.append(&mut knights);
+        }
     }
     
-    pub fn return_knights(&self, sq: usize, add_what: fn(&Self, usize, usize) -> Option<Flags>) -> Vec<Move> {
+    /// Knight moves from specified square. Doesn't ensure if the target is occupied.
+    pub fn return_knights(&self, sq: usize) -> Vec<usize> {
         let mut adding = vec![];
         for num in [-17i8, -15, -10, -6, 6, 10, 15, 17] {
             let to_check = sq as i8 + num;
@@ -39,13 +41,11 @@ impl Board {
             let to_check = to_check as usize;
             match shift {
                 (1, 2) | (2, 1) => {
-                    if let Some(flags) = add_what(&self, sq, to_check) {
-                        adding.push(Move::new(sq, to_check, flags));
-                    }
+                    adding.push(to_check);
                 },
                 _ => continue
             }
         }
-        return adding;
+            return adding;
     }
 }
