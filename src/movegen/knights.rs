@@ -1,5 +1,4 @@
-use crate::board::Board;
-use crate::moves::{Move, Flags};
+use crate::{Board, Move, Flags};
 
 impl Board {
     pub fn generate_knights(&mut self, sq: usize) {

@@ -1,5 +1,4 @@
-use crate::Board;
-use crate::moves::{Flags, Move};
+use crate::{Board, Flags, Move};
 
 impl Board {
     pub(super) fn generate_pawns(&mut self, sq: usize) {
@@ -12,28 +11,31 @@ impl Board {
             }
         }
 
-        let flags = Flags {
-            pawn_move: true,
-            ..Flags::default()
-        };
+        self.straight_pawn_moves(sq, dir);
+        self.pawn_eat_moves(sq, dir);
+        
+        if self.passant {
+            self.passants(sq, dir);
+        }
+    }
+    
+    #[inline(always)]
+    fn straight_pawn_moves(&mut self, sq: usize, dir: i8) {
         let to_check = (sq as i8 + dir) as usize;
-
-        // Is 1-square move is possible.
         if !self.is_piece(to_check) {
+                let flags = Flags {
+                pawn_move: true,
+                ..Flags::default()
+            };
             add_pawn_move(&mut self.all_moves, sq, to_check, flags.clone());
 
-            // Is 2-square move is possible.
+            // Is 2-square move possible.
             if (self.turn && sq / 8 == 1) || (!self.turn && sq / 8 == 6) {
                 let to_check = (sq as i8 + dir + dir) as usize;
                 if !self.is_piece(to_check) {
                     self.all_moves.push(Move::new(sq, to_check, flags.clone()));
                 }
             }
-        }
-
-        self.pawn_eat_moves(sq, dir);
-        if self.passant {
-            self.passants(sq, dir);
         }
     }
 
@@ -43,15 +45,16 @@ impl Board {
             return
         }
         let pawn = self.get_square(sq);
-        if (pawn & 0b0000_1000) != 0 {
+        if (pawn & 0b00_0000_10) != 0 {
             let to = (sq as i8 + dir + 1) as usize;
             self.all_moves.push(Move::new(sq, to, Flags {
                 pawn_move: true, 
                 eat: true, 
+                passant: true,
                 ..Flags::default()
             }))
         } 
-        if (pawn & 0b0000_0100) != 0 {
+        if (pawn & 0b00_0000_01) != 0 {
             let to = (sq as i8 + dir + 1) as usize;
             self.all_moves.push(Move::new(sq, to, Flags {
                 pawn_move: true, 
@@ -72,7 +75,7 @@ impl Board {
                 let to_check = to_check_i as usize;
                 if self.is_piece(to_check) {
                     pieces += 1;
-                    if self.is_diff_colors(king, to_check) && (self.get_square(to_check) & 0b1100_0000) == 0b1100_0000 {
+                    if self.is_diff_colors(king, to_check) && (self.get_square(to_check) & 0b00_1100_00) == 0b00_1100_00 {
                         return false
                     }
                 }
@@ -87,18 +90,7 @@ impl Board {
     fn gen_pawns_pinned(&mut self, sq: usize, dir: i8, pin: Move) {
         if pin.flags.rook_move {
             if pin.from % 8 == pin.to % 8 {
-                let to_check = (sq as i8 + dir) as usize;
-                if !self.is_piece(to_check) {
-                    add_pawn_move(
-                        &mut self.all_moves,
-                        sq,
-                        to_check,
-                        Flags {
-                            pawn_move: true,
-                            ..Flags::default()
-                        },
-                    )
-                }
+                self.straight_pawn_moves(sq, dir);
             }
         } else {
             self.pawn_eat_moves(sq, dir);
@@ -108,9 +100,9 @@ impl Board {
 
     #[inline(always)]
     fn pawn_eat_moves(&mut self, sq: usize, dir: i8) {
-        let mut to_check = (sq as i8 + dir) as usize;
-        if to_check >= 1 {
-            to_check -= 1;
+        let mut to_check = (sq as i8 + dir) as usize;//34 - 8 = 26
+        if to_check >= 1 {//true 
+            to_check -= 1; // 25 (need )
             if self.eatable_by_pawn(to_check, sq,) {
                 add_pawn_move(&mut self.all_moves, sq, to_check, Flags { 
                     eat: true, 
@@ -134,8 +126,8 @@ impl Board {
 
     #[inline(always)]
     fn eatable_by_pawn(&mut self, to_check: usize, sq: usize) -> bool {
-        if self.is_piece(to_check) && self.is_diff_colors(sq, to_check) {
-            if (to_check >> 3) + 1 == sq >> 3 || to_check >> 3 == (sq >> 3) + 1 {
+        if self.is_diff_colors(sq, to_check) {
+            if (to_check >> 3) + 1 == (sq >> 3) || (to_check >> 3) == (sq >> 3) + 1 {
                 // Can be -2, -1, 0, 1, 2 - only 1 is to searched.
                 return true
             }
@@ -159,9 +151,9 @@ impl Board {
                 };
                 
                 let pawn = self.get_square(sq);
-                let pawn_step = match pawn & 0b0000_1100 {
-                    0b0000_1000 => dir + 1,
-                    0b0000_0100 => dir - 1,                
+                let pawn_step = match pawn & 0b00_0000_11 {
+                    0b00_0000_10 => dir + 1,
+                    0b00_0000_01 => dir - 1,                
                     _ => return
                 };
                 
@@ -172,6 +164,7 @@ impl Board {
                         Flags {
                             eat: true,
                             pawn_move: true,
+                            passant: true,
                             ..Flags::default()
                         }
                     ))
@@ -182,7 +175,7 @@ impl Board {
 }
 
 #[inline(always)]
-pub fn add_pawn_move(moves: &mut Vec<Move>, from: usize, to: usize, flags: Flags) {
+pub(super) fn add_pawn_move(moves: &mut Vec<Move>, from: usize, to: usize, flags: Flags) {
     if to / 8 == 7 || to / 8 == 0 {
         moves.push(Move::new(
             from, to,

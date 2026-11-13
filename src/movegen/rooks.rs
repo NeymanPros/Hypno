@@ -1,5 +1,4 @@
-use crate::Board;
-use crate::moves::{Flags, Move};
+use crate::{Board, Flags, Move};
 
 impl Board {
     pub(super) fn generate_rooks(&mut self, sq: usize) {

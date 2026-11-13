@@ -1,5 +1,3 @@
-use std::fmt;
-
 #[derive(Default, Debug, Clone)]
 pub struct Flags {
     pub eat: bool,
@@ -9,6 +7,7 @@ pub struct Flags {
     pub bishop_move: bool,
     pub knight_move: bool,
     pub castle: bool,
+    pub passant: bool,
 }
 
 impl Flags {
@@ -25,8 +24,8 @@ pub struct Move {
     pub flags: Flags,
 }
 
-impl fmt::Debug for Move {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Debug for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("")
             .field(&self.from)
             .field(&self.to)

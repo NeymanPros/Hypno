@@ -1,8 +1,7 @@
-use crate::board::Board;
-use crate::moves::{Flags, Move};
+use crate::{Board, Flags, Move};
 
 impl Board {
-    pub fn generate_moves(&mut self, sq: usize) {
+    pub fn generate_bishops(&mut self, sq: usize) {
          for (num, pin) in self.xrays.iter().enumerate() {
             if sq == pin.to {
                 return self.gen_pinned(sq, self.xrays[num].clone());
@@ -10,13 +9,16 @@ impl Board {
         }
         
         for add in [-9i8, -7, 7, 9] {
-            let mut to_check = sq as i8;
+            let mut to_check = sq as i8 + add;
             let cond = |int: i8, sq_i: i8|{
-            let shift = (((sq_i >> 3) - (int >> 3)).abs(), ((sq_i % 8) - (int % 8)).abs());
+                let shift = (
+                    (sq_i >> 3).abs_diff(int >> 3), 
+                    (sq_i % 8).abs_diff(int % 8)
+                );
                 int >= 0 && int <= 63 && shift.0 == shift.1
             };
         
-            let flags = Flags{
+            let flags = Flags {
                 bishop_move: true,
                 ..Flags::default()
             };
@@ -55,7 +57,6 @@ impl Board {
                 }
                 self.all_moves.push(Move::new(sq, to_check, flags.clone()));
             }
-            
         }
     }
 }

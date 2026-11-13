@@ -1,20 +1,20 @@
-use crate::moves::Move;
+use crate::Move;
 use std::fmt::{Display, Formatter};
+use crate::from_fen::*;
 
-/// First 3 bits - type of piece, 4th is color
 #[derive(Debug)]
 pub struct Board {
+    /// First 2 bits - color, 4 bits - pieces, 2 last flags
     board: [u8; 64],
     pub turn: bool,
     pub passant: bool,
-    pub all_moves: Vec<Move>,
+    pub fifty_rule: u8,
+    
     pub white_king: usize,
     pub black_king: usize,
+    pub all_moves: Vec<Move>,
     pub checks: Vec<Move>,
-    pub xrays: Vec<Move>,
-    //castle: [bool; 4]
-    //total_pieces: u8,
-    //total_pawns: u8
+    pub xrays: Vec<Move>
 }
 
 impl Board {
@@ -23,177 +23,88 @@ impl Board {
         self.board[place]
     }
     #[inline(always)]
-    fn set_square(&mut self, place: usize, val: u8) {
+    pub(crate) fn set_square(&mut self, place: usize, val: u8) {
         self.board[place] = val
     }
 
     #[inline(always)]
     pub fn is_piece(&self, place: usize) -> bool {
         let square = self.get_square(place);
-        square >= 0b0010_0000
+        square >= 0b01_0000_00
     }
     #[inline(always)]
     pub fn is_white_piece(&self, place: usize) -> bool {
         let square = self.get_square(place);
-        (square >= 0b0011_0000) && (square & 0b0001_0000 == 0b0001_0000)
+        square > 0b10_0000_00
     }
     #[inline(always)]
     pub fn is_black_piece(&self, place: usize) -> bool {
         let square = self.get_square(place);
-        (square >= 0b0010_0000) && (square & 0b0001_0000 == 0)
+        (square & 0b01_0000_00) == 0b01_0000_00
     }
     #[inline(always)]
-    /// Assumes both are confirmed to be pieces.
+    /// True only if there are 2 different colored pieces.
     pub fn is_diff_colors(&self, first: usize, second: usize) -> bool {
         let one = self.get_square(first);
         let two = self.get_square(second);
-        ((one ^ two) & 0b0001_0000) != 0
+        (one | two) >= 0b11_0000_00
     }
+}
 
-    pub fn make_move(&mut self, mv: Move) {
-        // Remove passants.
-        if self.passant {
-            let row = (3 + self.turn as usize) * 8;
-            for letter in 0..8 {
-                let place = row + letter;
-                let sq = self.get_square(place);
-                let square = sq & 0b1110_1100; // Both colors.
-                if square == 0b0010_1100 || square == 0b0010_0100 || square == 0b0010_1000 {
-                    self.set_square(place, 0b0011_0011 & sq);
-                    println!("Removed passant")
-                }
-            }
-            self.passant = false
-        }
+impl Board {
+    pub fn from_fen(fen: &'static str) -> Self {
+        let mut split_fen = fen.split(' ');
+        let msg = "Incorrect fen";
+        let (mut board, white_king, black_king) = get_board(split_fen.next().expect(msg));
+        let turn = get_turn(split_fen.next().expect(msg));
+        add_castles(&mut board, split_fen.next().expect(msg));
+        let passant = get_passant(&mut board, split_fen.next().expect(msg));
+        let (fifty_rule, _)= get_rest(split_fen);
         
-        // Castle catch.
-        if mv.flags.castle {
-            return;
+        Self {
+            board,
+            turn, 
+            fifty_rule,
+            passant,
+            white_king,
+            black_king,
+            all_moves: vec![],
+            checks: vec![],
+            xrays: vec![],
         }
-        //Passant eat.
-        if mv.flags.eat && mv.flags.pawn_move {
-            // Consumes empty square.
-            if !self.is_piece(mv.to) {
-                let change = (
-                    (mv.from as i8 >> 3) - (mv.to as i8 >> 3),
-                    mv.from as i8 % 8 - mv.to as i8 % 8,
-                );
-                let place = match change {
-                    (-1, 1) | (1, 1) => mv.from - 1,
-                    (-1, -1) | (1, -1) => mv.from + 1,
-                    _ => panic!("Passant error!"),
-                };
-                self.set_square(place, 0);
-            }
-        }
-        
-        // Make a move.
-        self.set_square(mv.to, self.get_square(mv.from)); 
-        self.set_square(mv.from, 0);
-
-        if mv.flags.pawn_move {
-            // Queening.
-            if mv.to == 7 || mv.to == 0 {
-                let was = self.get_square(mv.to);
-                if mv.flags.bishop_move && mv.flags.rook_move {
-                    self.set_square(mv.to, 0b1110_0000 & was);
-                } else if mv.flags.bishop_move {
-                    self.set_square(mv.to, 0b0110_0000 & was);
-                } else if mv.flags.rook_move{
-                    self.set_square(mv.to, 0b1100_0000 & was);
-                } else if mv.flags.knight_move {
-                    self.set_square(mv.to, 0b0100_0000 & was);
-                }
-            }
-            // Add passants.
-            let shift = if self.turn {
-                (1, 3)
-            } else {
-                (6, 4)
-            };
-            
-            // find 2 square moves.
-            if mv.from / 8 == shift.0 {
-                if mv.to / 8 == shift.1 {
-                    let is_pawn = |board: &Self, sq: usize| {
-                        (board.get_square(sq) & 0b1110_0000) == 0b0010_0000
-                    };
-                    if is_pawn(&self, mv.to - 1) && self.is_diff_colors(mv.to - 1, mv.to) {
-                        self.set_square(mv.to - 1, self.get_square(mv.to - 1) | 0b0000_0100); // -1 == _01
-                        self.passant = true;
-                    }
-                    if is_pawn(&self, mv.to + 1) && self.is_diff_colors(mv.to + 1, mv.to) {
-                        self.set_square(mv.to + 1, self.get_square(mv.to + 1) | 0b0000_1000); // +1 == _10
-                        self.passant = true;
-                    }
-                    println!("Maybe added passants")
-                }
-            }
-        }
-        self.turn = !self.turn;
-    }
-
-#[allow(dead_code)]
-    pub fn from_fen(_fen: &'static str) -> Option<Self> {
-        None
     }
 }
 
 impl Default for Board {
     fn default() -> Self {
-        Self {
-            board: std::array::from_fn(|i| match i {
-                0 | 7 => 0b1101_1000,
-                63 | 40 => 0b1100_1000,
-                1 | 6 => 0b0101_0000,
-                62 | 57 => 0b0100_0000,
-                2 | 5 => 0b0111_0000,
-                61 | 58 => 0b0110_0000,
-                4 => 0b1111_0000,
-                60 => 0b1110_0000,
-                3 => 0b1011_1000,
-                59 => 0b1010_1000,
-                24 | 25 | 35 | 10 | 12 | 13 | 14 | 15 => 0b0011_0000,
-                55 | 54 | 53 | 52 | 51 | 50 | 33 | 32 => 0b0010_0000,
-                _ => 0,
-            }),
-            turn: true,
-            passant: false,
-            all_moves: vec![],
-            white_king: 3,
-            black_king: 59,
-            xrays: vec![],
-            checks: vec![],
-            //total_pieces: 0,
-            //col_pawns: 0
-        }
+        Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     }
 }
 
 impl Display for Board {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut out = String::default();
-        for p in 0..=63 {
-            if p % 8 == 0 {
-                out.push_str("/\n");
+        for add in [56usize, 48, 40, 32, 24, 16, 8, 0] {
+            out.push('\n');
+            for p in add..=(add+7) {
+                let square = self.get_square(p);
+                let c = match square & 0b11_1111_00 {
+                    0b10_1110_00 => 'Q',
+                    0b01_1110_00 => 'q',
+                    0b10_1000_00 => 'K',
+                    0b01_1000_00 => 'k',
+                    0b10_1100_00 => 'R',
+                    0b01_1100_00 => 'r',
+                    0b10_0110_00 => 'B',
+                    0b01_0110_00 => 'b',
+                    0b10_0100_00 => 'N',
+                    0b01_0100_00 => 'n',
+                    0b10_0001_00 => 'P',
+                    0b01_0001_00 => 'p',
+                    _ => '.',
+                };
+                out.push(c);
             }
-            let square = self.get_square(p);
-            let c = match square & 0b1111_0000 {
-                0b1111_0000 => 'Q',
-                0b1110_0000 => 'q',
-                0b1011_0000 => 'K',
-                0b1010_0000 => 'k',
-                0b1101_0000 => 'R',
-                0b1100_0000 => 'r',
-                0b0111_0000 => 'B',
-                0b0110_0000 => 'b',
-                0b0101_0000 => 'N',
-                0b0100_0000 => 'n',
-                0b0011_0000 => 'P',
-                0b0010_0000 => 'p',
-                _ => '0',
-            };
-            out.push(c);
         }
         f.write_str(out.as_str())
     }

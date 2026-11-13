@@ -1,5 +1,4 @@
-use crate::Board;
-use crate::moves::Move;
+use crate::{Board, Move};
 
 impl Board {
     #[inline(always)]
@@ -24,7 +23,7 @@ impl Board {
         
         let mut to_check = from + add;
         while to_check < to {
-            let mut moves = self.go_square(to_check, false, self.turn, ignore_xray);
+            let mut moves = self.go_square(to_check, false, self.turn, ignore_xray, false);
             self.all_moves.append(&mut moves);
             
             to_check += add;
@@ -32,8 +31,8 @@ impl Board {
     }
     
     #[inline(always)]
-    pub(super) fn go_square(&mut self, sq: usize, eat: bool, target_color: bool, ignore_xray: bool) -> Vec<Move> {
-        let mut brq = self.brq_occupy_xrays(sq, false, false, target_color);
+    pub(super) fn go_square(&mut self, sq: usize, eat: bool, target_color: bool, ignore_xray: bool, single_attack: bool) -> Vec<Move> {
+        let mut brq = self.brq_occupy_xrays(sq, single_attack, true, target_color);
         let mut knights = self.knight_occupy(sq, target_color);
         let pawns = if eat {
             self.pawn_eat(sq, target_color)

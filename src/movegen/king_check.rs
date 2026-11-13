@@ -1,7 +1,7 @@
 use crate::Board;
 
 impl Board {
-    pub fn king_checks(&mut self) {
+    pub fn king_checks_xrays(&mut self) {
         self.checks = vec![];
         let king = if self.turn { self.white_king  } else { self.black_king };
         
