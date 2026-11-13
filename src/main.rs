@@ -9,7 +9,7 @@ mod from_fen;
 mod uci;
 
 fn main() {
-    let mut board = Board::from_fen("r3kbnr/pp1b1ppp/2n5/q3P3/8/2N5/PB2QPPP/R3KBNR w KQkq - 0 1");
+    let mut board = Board::from_fen("rnb1kbnr/pp1ppppp/2p5/q3QB2/2PPP3/P7/P2K1PPP/RN3BNR w kq - 0 1");
     println!("{}", board);
     loop {
         let mut input = String::default();

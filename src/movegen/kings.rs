@@ -13,12 +13,20 @@ impl Board {
         ensure.retain(|&add| {
             !self.is_piece(add) || self.is_diff_colors(sq, add)
         });
+        
+        // If in check.
+        self.checks.iter().for_each(|check| remove_checked(&mut ensure, sq, check));
 
         // No steps onto attacked sq.
         ensure.retain(|&to_check| {
             let attacks = self.go_square(to_check, true, !self.turn, true, true);
             attacks.len() == 0
         });
+        
+        // Enemy king collisions.
+        let enemy_sq = self.get_king(!self.turn) as i8;
+        let enemy_moves = self.gen_all_kings(enemy_sq);
+        ensure.retain(|to_check| !enemy_moves.contains(to_check) );
 
         // Get castle check.
         let king = self.get_square(sq);
@@ -71,31 +79,58 @@ impl Board {
     #[inline(always)]
     fn castle_add(&mut self, sq: usize, to: usize) {
         let diff = to as i8 - sq as i8;
-                let (rook_sq, final_sq) = match diff {
-                    -1 => {
-                        if self.turn { (0, 2) } else { (56, 58) }
-                    },
-                    1 => {
-                        if self.turn { (7, 4) } else { (63, 62) }
-                    },
-                    _ => return
-                };
-                
-                let rook = self.get_square(rook_sq);
-                // Rook can castle.
-                if (rook & 0b00_1100_10) == 0b00_1100_10 {
-                    let attacks = self.go_square(final_sq, true, !self.turn, true, true);
-                    if attacks.len() == 0 {
-                        self.all_moves.push(Move::new (
-                            sq, 
-                            final_sq,
-                            Flags {
-                                king_move: true, 
-                                castle: true,
-                                ..Flags::default()
-                            }
-                        ))
+        let (rook_sq, final_sq) = match diff {
+            -1 => {
+                if self.turn { (0, 2) } else { (56, 58) }
+            },
+            1 => {
+                if self.turn { (7, 4) } else { (63, 62) }
+            },
+            _ => return
+        };
+        
+        let rook = self.get_square(rook_sq);
+        // Rook can castle.
+        if (rook & 0b00_1100_10) == 0b00_1100_10 {
+            let attacks = self.go_square(final_sq, true, !self.turn, true, true);
+            if attacks.len() == 0 {
+                self.all_moves.push(Move::new (
+                    sq, 
+                    final_sq,
+                    Flags {
+                        king_move: true, 
+                        castle: true,
+                        ..Flags::default()
                     }
-                }
+                ))
             }
+        }
+    }
+    
+}
+
+#[inline(always)]
+fn remove_checked(ensure: &mut Vec<usize>, sq: usize, check: &Move) {
+    let shift = if check.flags.bishop_move {
+        let check_shift = check.from.abs_diff(check.to);
+        if check_shift % 9 == 0 {
+            9
+        } else {
+            7
+        }
+    } else if check.flags.rook_move {
+        let check_shift = check.from.abs_diff(check.to);
+        if check_shift < 8 {
+            1
+        } else {
+            8
+        }
+    } else {
+        return;
+    };
+    
+    ensure.retain(|&pl| {
+        !( (sq >= shift && pl + shift == sq) // sq - shift it should be
+        || (sq + shift <= 63 && pl == sq + shift) )
+    });
 }
