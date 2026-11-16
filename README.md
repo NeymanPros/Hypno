@@ -20,6 +20,8 @@ Uses move flags and board man flags, second to show passant eat and castle. Move
 
 *todo:*
 
--proper testing (perft including)
+-fix remove of passants
+
+-verify perft testing
 
 -3-fold
