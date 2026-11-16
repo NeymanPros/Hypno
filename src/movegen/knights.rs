@@ -37,10 +37,9 @@ impl Board {
                 continue;
             }
             let shift = (((to_check >> 3) - (sq as i8 >> 3)).abs(), (( to_check % 8) - (sq as i8 % 8)).abs());
-            let to_check = to_check as usize;
             match shift {
                 (1, 2) | (2, 1) => {
-                    adding.push(to_check);
+                    adding.push(to_check as usize);
                 },
                 _ => continue
             }

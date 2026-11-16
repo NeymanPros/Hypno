@@ -84,14 +84,13 @@ impl Board {
                 if self.turn { (0, 2) } else { (56, 58) }
             },
             1 => {
-                if self.turn { (7, 4) } else { (63, 62) }
+                if self.turn { (7, 6) } else { (63, 62) }
             },
             _ => return
         };
         
-        let rook = self.get_square(rook_sq);
-        // Rook can castle.
-        if (rook & 0b00_1100_10) == 0b00_1100_10 {
+        // Rook can castle and square is empty.
+        if self.slice_castle(rook_sq.min(sq)) {
             let attacks = self.go_square(final_sq, true, !self.turn, true, true);
             if attacks.len() == 0 {
                 self.all_moves.push(Move::new (
@@ -107,6 +106,21 @@ impl Board {
         }
     }
     
+    /// Compares 4 squares.
+    fn slice_castle(&self, from: usize) -> bool {
+        let slice_32 = u32::from_be_bytes([
+            self.get_square(from),
+            self.get_square(from + 1),
+            self.get_square(from + 2),
+            self.get_square(from + 3)
+        ]);
+        
+        // Queen side
+        (slice_32 & 0b00_1100_10_11111111_11111111_11111111) == 0b00_1100_10_00000000_00000000_00000000
+        ||
+        // King side
+        (slice_32 & 0b00_1111_10_11111111_11111111_00_1111_10) == 0b00_1000_10_00000000_00000000_00_1100_10
+    }
 }
 
 #[inline(always)]

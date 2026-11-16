@@ -2,7 +2,7 @@ use crate::Move;
 use std::fmt::{Display, Formatter};
 use crate::from_fen::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Board {
     /// First 2 bits - color, 4 bits - pieces, 2 last flags
     board: [u8; 64],

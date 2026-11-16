@@ -4,6 +4,7 @@ impl Board {
     pub(super) fn make_move(&mut self, mv: Move) {
         // Pre-moved changes
         if self.passant {
+	    println!("Passant was true");
             self.remove_passants();
         }
         
@@ -21,7 +22,6 @@ impl Board {
         // Post-move chagnes
         if mv.flags.pawn_move {
             self.fifty_rule = 0;
-            println!("Pawn_move");
             if mv.flags.passant {
                 self.passant_eat(&mv);
             }
@@ -100,7 +100,6 @@ impl Board {
     
     #[inline(always)]
     fn passant_eat(&mut self, mv: &Move) {
-        println!("Inside passant_eat");
         let change = (
             (mv.from as i8 >> 3) - (mv.to as i8 >> 3),
             mv.from as i8 % 8 - mv.to as i8 % 8,
@@ -111,7 +110,6 @@ impl Board {
             (-1, 1) | (1, 1) => mv.from - 1,
             _ => panic!("Passant error!"),
         };
-        println!("set square: {}", place);
         self.set_square(place, 0);
     }
     
@@ -143,11 +141,11 @@ impl Board {
                 let is_pawn = |board: &Self, sq: usize| {
                     (board.get_square(sq) & 0b00_1111_00) == 0b00_0001_00
                 };
-                if is_pawn(&self, mv.to - 1) && self.is_diff_colors(mv.to - 1, mv.to) {
+                if is_pawn(&self, mv.to - 1) && self.is_diff_colors(mv.to - 1, mv.to) && (mv.to - 1) >> 3 == shift.1 {
                     self.set_square(mv.to - 1, self.get_square(mv.to - 1) | 0b00_0000_01); // -1 == _01
                     self.passant = true;
                 }
-                if is_pawn(&self, mv.to + 1) && self.is_diff_colors(mv.to + 1, mv.to) {
+                if is_pawn(&self, mv.to + 1) && self.is_diff_colors(mv.to + 1, mv.to) && (mv.to + 1) >> 3 == shift.1 {
                     self.set_square(mv.to + 1, self.get_square(mv.to + 1) | 0b00_0000_10); // +1 == _10
                     self.passant = true;
                 }

@@ -7,9 +7,21 @@ mod moves;
 mod make_move;
 mod from_fen;
 mod uci;
+mod perft;
 
 fn main() {
-    let mut board = Board::from_fen("rnb1kbnr/pp1ppppp/2p5/q3QB2/2PPP3/P7/P2K1PPP/RN3BNR w kq - 0 1");
+    run_perft();
+}
+
+fn run_perft() {
+    let mut board = Board::default();
+    let moves = perft::perft(&mut board, 5);
+    println!("Moves: {}", moves);
+    return;
+}
+
+fn run_some() {
+    let mut board = Board::from_fen("r1bqkbnr/pppppppp/8/3Q4/N1BPP3/8/PPP2PPP/Rn2KBNR w KQkq - 0 1");    
     println!("{}", board);
     loop {
         let mut input = String::default();
@@ -30,7 +42,7 @@ fn main() {
     }
 }
 
-fn main_all() {
+fn run_all() {
     let mut board = Board::default();
     println!("{}", board);
     loop {

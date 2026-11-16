@@ -7,7 +7,7 @@ impl Board {
         self.xrays.clear();
         
         self.king_checks_xrays();
-        println!("\nChecks: {:?}\nXrays: {:?}\n", self.checks, self.xrays);
+        //println!("\nChecks: {:?}\nXrays: {:?}\n", self.checks, self.xrays);
         
         if self.checks.len() != 0 {
             self.avoid_checks();
@@ -21,7 +21,7 @@ impl Board {
                     0b00_0001_00 => self.generate_pawns(sq),
                     0b00_0100_00 => self.generate_knights(sq),
                     0b00_0110_00 => self.generate_bishops(sq),
-                    0b00_1100 => self.generate_rooks(sq),
+                    0b00_1100_00 => self.generate_rooks(sq),
                     0b00_1110_00 => {
                         self.generate_rooks(sq);
                         self.generate_bishops(sq);

@@ -100,9 +100,9 @@ impl Board {
 
     #[inline(always)]
     fn pawn_eat_moves(&mut self, sq: usize, dir: i8) {
-        let mut to_check = (sq as i8 + dir) as usize;//34 - 8 = 26
-        if to_check >= 1 {//true 
-            to_check -= 1; // 25 (need )
+        let mut to_check = (sq as i8 + dir) as usize;
+        if to_check >= 1 {
+            to_check -= 1; 
             if self.eatable_by_pawn(to_check, sq,) {
                 add_pawn_move(&mut self.all_moves, sq, to_check, Flags { 
                     eat: true, 
