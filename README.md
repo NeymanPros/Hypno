@@ -18,10 +18,16 @@ When king is in check, then skip the generation, and searches for pieces join a 
 
 Uses move flags and board man flags, second to show passant eat and castle. Move flags are for multiple purposes, make_move speed up, pin and check manipulations, queening.
 
-*todo:*
+*ToDo:*
 
--fix remove of passants
-
--verify perft testing
+-test of queening and castling
 
 -3-fold
+
+-Movegen adaptation for search mode
+
+*Done*
+
+-Successful testing with depth 6 for starting position and starting position with no pawns
+
+-Updated board and piece representation for easier usage and slight boost in speed
