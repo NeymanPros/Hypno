@@ -34,12 +34,14 @@ impl Board {
     fn gen_rooks_pinned(&mut self, sq: usize, pin: Move) {
         let king = self.get_king(self.turn);
         if pin.flags.rook_move {
-            let add = if pin.from >> 8 == pin.to >> 8 {
+            let add = if (pin.from >> 3) == (pin.to >> 3) {
+                // In one line
                 1
             } else if pin.from % 8 == pin.to % 8 {
+                // In one row
                 8
             } else {
-                return
+                panic!("Bad shift in rook pinned")
             };
             let min = pin.from.min(king) + add;
             let max = pin.from.max(king);
@@ -47,15 +49,17 @@ impl Board {
                 rook_move: true,
                 ..Flags::default()
             };
+            
             let mut pl = min;
             while pl < max {
                 if pl == sq {
+                    pl += add;
                     continue;
                 }
                 self.all_moves.push(Move::new(sq, pl, flags.clone()));
                 pl += add;
             }
-            let _ = self.add_exit(sq, pin.from, flags);
+            self.all_moves.push(Move::new(sq, pin.from, flags.with_eat()));
         }
     }
 }

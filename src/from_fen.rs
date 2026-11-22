@@ -57,19 +57,19 @@ pub(super) fn add_castles(board: &mut [u8; 64], fen: &'static str) {
         let rook_sq = match char {
             'K' => {
                 board[4] = board[4] | 0b00_0000_10;
-                0
+                7
             },
             'Q' => {
                 board[4] = board[4] | 0b00_0000_10;
-                7
+                0
             },
             'k' => {
                 board[60] = board[60] | 0b00_0000_10;
-                56
+                63
             },
             'q' => {
                 board[60] = board[60] | 0b00_0000_10;
-                63
+                56
             },
             _ => panic!("Bad castle fen")
         };

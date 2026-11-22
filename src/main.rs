@@ -15,13 +15,13 @@ fn main() {
 
 fn run_perft() {
     let mut board = Board::default();
-    let moves = perft::perft(&mut board, 5);
+    let moves = perft::perft(&mut board, 6);
     println!("Moves: {}", moves);
     return;
 }
 
 fn run_some() {
-    let mut board = Board::from_fen("r1bqkbnr/pppppppp/8/3Q4/N1BPP3/8/PPP2PPP/Rn2KBNR w KQkq - 0 1");    
+    let mut board = Board::from_fen("rnbqkbnr/pppppppp/8/8/7P/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1");    
     println!("{}", board);
     loop {
         let mut input = String::default();
@@ -42,13 +42,14 @@ fn run_some() {
     }
 }
 
+
 fn run_all() {
-    let mut board = Board::default();
+    let mut board = Board::from_fen("rnbqkbnr/pp1ppppp/8/2p5/1P6/8/P1PPPPPP/RNBQKBNR w KQkq - 0 1");
     println!("{}", board);
     loop {
         let mut input = String::default();
         board.generate_all_moves();
-        println!("Moves: {:?}", board.all_moves);
+        println!("\nMoves: {:?}\nChecks: {:?}\nXrays: {:?}", board.all_moves, board.checks, board.xrays);
         std::io::stdin().read_line(&mut input).expect("Worst");
         let cords: Vec<usize> = input
             .trim()
@@ -65,6 +66,23 @@ fn run_all() {
             }
         } else {
             println!("Bad amount of numbers")
+        }
+    }
+}
+
+fn run_uci() {
+    let mut board = Board::default();
+    println!("{}", board);
+    loop {
+        let mut input = String::default();
+        board.generate_all_moves();
+        std::io::stdin().read_line(&mut input).expect("Worst");
+        let uci_mv = Move::from_uci(input);
+        if let Some(mv) = board.all_moves.iter().find(|&mv| mv == &uci_mv) {
+            board.make_move(mv.clone());
+            println!("{}", board);
+        } else {
+            println!("Wrong move, mv: {uci_mv:?}");
         }
     }
 }

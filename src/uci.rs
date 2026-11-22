@@ -1,11 +1,11 @@
 use crate::{Move, Flags};
 
 impl Move {
-    pub fn from_uci (uci: &'static str) -> Move {
+    pub fn from_uci (uci: String) -> Move {
         let mut iter = uci.as_bytes().into_iter();
         let msg = "Bad UCI";
-        let from = ((iter.next().expect(msg) - 'a' as u8) << 3) + iter.next().expect(msg) - '1' as u8;
-        let to = ((iter.next().expect(msg) - 'a' as u8) << 3) + iter.next().expect(msg) - '1' as u8;
+        let from = (iter.next().expect(msg) - 'a' as u8) + ((iter.next().expect(msg) - '1' as u8) << 3);
+        let to = (iter.next().expect(msg) - 'a' as u8) + ((iter.next().expect(msg) - '1' as u8) << 3);
         let from = from as usize;
         let to = to as usize;
         let Some(flags_letter) = iter.next() else {

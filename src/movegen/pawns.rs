@@ -55,10 +55,11 @@ impl Board {
             }))
         } 
         if (pawn & 0b00_0000_01) != 0 {
-            let to = (sq as i8 + dir + 1) as usize;
+            let to = (sq as i8 + dir - 1) as usize;
             self.all_moves.push(Move::new(sq, to, Flags {
                 pawn_move: true, 
                 eat: true, 
+                passant: true,
                 ..Flags::default()
             }))
         }
@@ -93,7 +94,7 @@ impl Board {
                 self.straight_pawn_moves(sq, dir);
             }
         } else {
-            self.pawn_eat_moves(sq, dir);
+            self.pawn_eat_pinned(sq, &pin, dir);
             self.passant_pinned(sq, pin, dir);
         }
     }
@@ -103,7 +104,7 @@ impl Board {
         let mut to_check = (sq as i8 + dir) as usize;
         if to_check >= 1 {
             to_check -= 1; 
-            if self.eatable_by_pawn(to_check, sq,) {
+            if self.eatable_by_pawn(to_check, sq) {
                 add_pawn_move(&mut self.all_moves, sq, to_check, Flags { 
                     eat: true, 
                     pawn_move: true,
@@ -114,7 +115,7 @@ impl Board {
 
         let to_check = (sq as i8 + dir) as usize + 1;
         if to_check <= 63 {
-            if self.eatable_by_pawn(to_check, sq,) {
+            if self.eatable_by_pawn(to_check, sq) {
                 add_pawn_move(&mut self.all_moves, sq, to_check, Flags { 
                     eat: true, 
                     pawn_move: true,
@@ -127,8 +128,8 @@ impl Board {
     #[inline(always)]
     fn eatable_by_pawn(&mut self, to_check: usize, sq: usize) -> bool {
         if self.is_diff_colors(sq, to_check) {
-            if (to_check >> 3) + 1 == (sq >> 3) || (to_check >> 3) == (sq >> 3) + 1 {
-                // Can be -2, -1, 0, 1, 2 - only 1 is to searched.
+            if (to_check % 8).abs_diff(sq % 8) == 1 {
+                // Does not create problems with rook pawns.
                 return true
             }
         }
@@ -136,9 +137,37 @@ impl Board {
     }
     
     #[inline(always)]
+    fn pawn_eat_pinned(&mut self, sq: usize, pin: &Move, dir: i8) {
+        let shift = pin.from as i8 - pin.to as i8;
+        let add = if shift % 9 == 0 {
+            if dir > 0 {
+                9i8
+            } else {
+                -9
+            }
+        } else {
+            if dir > 0 {
+                7
+            } else {
+                -7
+            }
+        };
+        
+        // If pinned no overflow possible.
+        let to_check = (sq as i8 + add) as usize;
+        if self.eatable_by_pawn(to_check, sq) {
+                add_pawn_move(&mut self.all_moves, sq, to_check, Flags { 
+                    eat: true, 
+                    pawn_move: true,
+                    ..Flags::default()
+                    })
+            }
+    }
+    
+    #[inline(always)]
     pub (super) fn passant_pinned(&mut self, sq: usize, pin: Move, dir: i8) {
         if self.passant && pin.flags.bishop_move {
-            let row = sq / 8;
+            let row = sq >> 3;
             if row == 3 || row == 4 {
                 let shift = pin.from.abs_diff(pin.to);
                 // Always positive.
@@ -176,7 +205,7 @@ impl Board {
 
 #[inline(always)]
 pub(super) fn add_pawn_move(moves: &mut Vec<Move>, from: usize, to: usize, flags: Flags) {
-    if to / 8 == 7 || to / 8 == 0 {
+    if (to >> 3) == 7 || (to >> 3) == 0 {
         moves.push(Move::new(
             from, to,
             Flags {

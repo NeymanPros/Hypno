@@ -5,8 +5,8 @@ impl Board {
     pub fn brq_occupy_xrays(&mut self, sq: usize, single_attack: bool, ignore_xrays: bool, target_color: bool) -> Vec<Move> {
         let mut attacks = vec![];
         
-        for add in [-8i8, -1, 1, 8, -9, -7, 7, 9] { // -7
-            let mut to_check = sq as i8 + add; // 32 -7 = 25
+        for add in [-8i8, -1, 1, 8, -9, -7, 7, 9] { 
+            let mut to_check = sq as i8 + add; 
             let  mut king_check = false;
             let mut exit = false;
             let mut maybe_xray = 64;
@@ -16,17 +16,17 @@ impl Board {
                 -8 | 8 => |start: i8, _target: i8| {start >= 0 && start <= 63},
                 _ => |start: i8, target: i8| {
                     let shift_0 = (target >> 3).abs_diff(start >> 3);
-                    let shift_1 = (target % 8).abs_diff(start % 8); // this
+                    let shift_1 = (target % 8).abs_diff(start % 8); 
                     start >= 0 && start <= 63 && shift_0 == shift_1
                 }
             };
             
             let (piece, flags) = match add {
                 -8 | -1 | 1 | 8 => (0b00_1100_00, Flags{rook_move: true, ..Flags::default()}),
-                _ => (0b00_0110_00, Flags{bishop_move: true, ..Flags::default()}) // this
+                _ => (0b00_0110_00, Flags{bishop_move: true, ..Flags::default()}) 
             };
             
-            while cond(to_check, sq as i8) && !exit { // true
+            while cond(to_check, sq as i8) && !exit { 
                 let to_check_u = to_check as usize;
                 if !self.is_piece(to_check_u) {
                     // If not a piece

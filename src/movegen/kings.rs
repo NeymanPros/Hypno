@@ -24,8 +24,8 @@ impl Board {
         });
         
         // Enemy king collisions.
-        let enemy_sq = self.get_king(!self.turn) as i8;
-        let enemy_moves = self.gen_all_kings(enemy_sq);
+        let enemy_king_sq = self.get_king(!self.turn) as i8;
+        let enemy_moves = self.gen_all_kings(enemy_king_sq);
         ensure.retain(|to_check| !enemy_moves.contains(to_check) );
 
         // Get castle check.
@@ -55,7 +55,7 @@ impl Board {
         }
     }
     
-    // All possible moves.
+    /// All possible moves.
     #[inline(always)]
     fn gen_all_kings(&self, sq: i8) -> Vec<usize> {
         let pos= (sq >> 3, sq % 8);
@@ -115,10 +115,10 @@ impl Board {
             self.get_square(from + 3)
         ]);
         
-        // Queen side
+        // Queen side: rook, 0, 0, 0
         (slice_32 & 0b00_1100_10_11111111_11111111_11111111) == 0b00_1100_10_00000000_00000000_00000000
         ||
-        // King side
+        // King side: king, 0, 0, rook
         (slice_32 & 0b00_1111_10_11111111_11111111_00_1111_10) == 0b00_1000_10_00000000_00000000_00_1100_10
     }
 }
@@ -143,8 +143,12 @@ fn remove_checked(ensure: &mut Vec<usize>, sq: usize, check: &Move) {
         return;
     };
     
-    ensure.retain(|&pl| {
-        !( (sq >= shift && pl + shift == sq) // sq - shift it should be
-        || (sq + shift <= 63 && pl == sq + shift) )
+    ensure.retain(|&king_go| {
+        if king_go == check.from {
+            // Save to check if piece eatable later.
+            return true;
+        }
+        !( (sq >= shift && king_go + shift == sq) // sq - shift it should be
+        || (sq + shift <= 63 && king_go == sq + shift) )
     });
 }

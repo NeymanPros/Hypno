@@ -14,6 +14,15 @@ impl Flags {
     pub fn with_eat(&self) -> Self {
         Self { eat: true, ..*self }
     }
+    fn queening_flags(&self, other: &Self) -> bool {
+        if self.pawn_move || other.pawn_move {
+            self.rook_move == other.rook_move &&
+            self.bishop_move == other.bishop_move &&
+            self.knight_move == other.knight_move
+        } else {
+            true
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -36,7 +45,10 @@ impl std::fmt::Debug for Move {
 impl PartialEq for Move {
     fn eq(&self, other: &Self) -> bool {
         if self.from == other.from && self.to == other.to {
-            true
+            if self.flags.queening_flags(&other.flags){
+                return true
+            }
+            false
         } else {
             false
         }

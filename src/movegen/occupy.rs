@@ -7,7 +7,7 @@ impl Board {
         let from = attack.from.min(attack.to);
         let to= attack.from.max(attack.to);
         
-        let add = if attack.flags.knight_move {
+        let add = if attack.flags.knight_move || attack.flags.pawn_move {
             return
         } else if attack.flags.bishop_move && (to - from) % 9 == 0 {
             9
@@ -18,7 +18,7 @@ impl Board {
         } else if attack.flags.rook_move && to / 8 == from / 8 {
             1
         } else {
-            panic!("Wrong shift in bishop move!")
+            panic!("Wrong shift in check!")
         };
         
         let mut to_check = from + add;

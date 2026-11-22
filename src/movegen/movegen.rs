@@ -7,7 +7,6 @@ impl Board {
         self.xrays.clear();
         
         self.king_checks_xrays();
-        //println!("\nChecks: {:?}\nXrays: {:?}\n", self.checks, self.xrays);
         
         if self.checks.len() != 0 {
             self.avoid_checks();
@@ -27,7 +26,7 @@ impl Board {
                         self.generate_bishops(sq);
                     }
                     0b00_1000_00 => self.generate_king(sq),
-                    _ => {}
+                    _ => panic!("Unknown piece!")
                 }
             }
         }
