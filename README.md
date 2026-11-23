@@ -6,7 +6,7 @@ Chess engine on an early stage.
 
 # Movegen
 
-Almost fully done. 
+Can be called finished
 
 **Features**
 
@@ -27,6 +27,6 @@ Uses move flags and board man flags, second to show passant eat and castle. Move
 *Done*
 
 -Successful testing with depth 6 for:
-Starting, starting with no pawns, pins, castle ling & short, passant, pinned passant, queening.
+Starting, starting with no pawns, pins, castle long & short, passant, pinned passant, queening.
 
 -Updated board and piece representation for easier usage and slight boost in speed.
