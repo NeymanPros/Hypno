@@ -20,14 +20,13 @@ Uses move flags and board man flags, second to show passant eat and castle. Move
 
 *ToDo:*
 
--test of queening and castling
-
 -3-fold
 
 -Movegen adaptation for search mode
 
 *Done*
 
--Successful testing with depth 6 for starting position and starting position with no pawns
+-Successful testing with depth 6 for:
+Starting, starting with no pawns, pins, castle ling & short, passant, pinned passant, queening.
 
--Updated board and piece representation for easier usage and slight boost in speed
+-Updated board and piece representation for easier usage and slight boost in speed.
