@@ -42,7 +42,7 @@ impl Board {
             }
             self.king_no_castle(&mv);
         }
-        if mv.flags.rook_move && !mv.flags.bishop_move {
+        if mv.flags.rook_move {
             self.rook_no_castle(&mv);
         }
         
@@ -168,10 +168,14 @@ impl Board {
     
     #[inline(always)]
     fn rook_no_castle(&mut self, mv: &Move) {
-        if self.turn && (mv.from == 0 || mv.from == 7) {
-            self.set_square(mv.to, 0b10_1100_00);
-        } else if !self.turn && (mv.from == 56 || mv.from == 63) {
-            self.set_square(mv.to, 0b01_1100_00);
+        let rook = self.get_square(mv.to);
+        // Check if rook is not queen
+        if (rook & 0b00_1111_10) == 0b1100_10 {
+            if self.turn && (mv.from == 0 || mv.from == 7) {
+                self.set_square(mv.to, 0b10_1100_00);
+            } else if !self.turn && (mv.from == 56 || mv.from == 63) {
+                self.set_square(mv.to, 0b01_1100_00);
+            }
         }
     }
 }

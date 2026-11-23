@@ -14,14 +14,14 @@ fn main() {
 }
 
 fn run_perft() {
-    let mut board = Board::default();
-    let moves = perft::perft(&mut board, 6);
+    let mut board = Board::from_fen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10");
+    let moves = perft::perft(&mut board, 4);
     println!("Moves: {}", moves);
     return;
 }
 
 fn run_some() {
-    let mut board = Board::from_fen("rnbqkbnr/pppppppp/8/8/7P/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1");    
+    let mut board = Board::from_fen("5k2/8/8/8/8/8/8/4K2R w K - 0 1");    
     println!("{}", board);
     loop {
         let mut input = String::default();
@@ -44,7 +44,7 @@ fn run_some() {
 
 
 fn run_all() {
-    let mut board = Board::from_fen("rnbqkbnr/pp1ppppp/8/2p5/1P6/8/P1PPPPPP/RNBQKBNR w KQkq - 0 1");
+    let mut board = Board::from_fen("8/8/8/4k3/2p5/8/3P2K1/1B6 w - - 0 1");
     println!("{}", board);
     loop {
         let mut input = String::default();

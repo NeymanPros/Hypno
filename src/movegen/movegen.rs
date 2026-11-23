@@ -24,7 +24,7 @@ impl Board {
                     0b00_1110_00 => {
                         self.generate_rooks(sq);
                         self.generate_bishops(sq);
-                    }
+                    },
                     0b00_1000_00 => self.generate_king(sq),
                     _ => panic!("Unknown piece!")
                 }

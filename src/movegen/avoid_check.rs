@@ -24,7 +24,8 @@ impl Board {
                 3
             };
             if (attack.from >> 3) == row {
-                for (to_check, pawn) in [(attack.from - 1, 0b00_0001_01), (attack.from + 1, 0b00_0001_10)] {
+                for (to_check, pawn) in [(attack.from - 1, 0b00_0001_10), (attack.from + 1, 0b00_0001_01)] {
+                    // Swapped _10 and _01
                     let sq = self.get_square(to_check);
                     // If position before is possible.
                     if (sq & 0b00_1111_11) == pawn {
